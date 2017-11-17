@@ -43,8 +43,6 @@ func (char *character) EventSystem() {
 	char.StateChange = make(chan StateType)
 
 	for {
-		time.Sleep(1 * time.Second)
-
 		select {
 		case moveX := <-char.HorizontalMovement:
 			char.PosX += moveX
@@ -60,6 +58,8 @@ func (char *character) EventSystem() {
 		case state := <-char.StateChange:
 			char.State = state
 		}
+
+		time.Sleep(1 * time.Second)
 	}
 }
 
