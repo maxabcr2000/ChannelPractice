@@ -16,7 +16,7 @@ func NewSourceStage(outCh chan Character) *SourceStage {
 }
 
 func (stage *SourceStage) Start() {
-	i := 0
+	i := 1
 	for {
 		name := fmt.Sprintf("TestPlayer%d", i)
 		stage.outboundCh <- NewCharacter(i, name)

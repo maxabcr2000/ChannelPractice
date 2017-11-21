@@ -1,2 +1,2 @@
 # ChannelPractice
-Practice Project for Go Channels
+Practice Project for Go Channels, Http API
