@@ -11,7 +11,7 @@ func main() {
 
 	sinkStage := character.NewSinkStage(outBoundCh)
 	charManagerStage := character.NewCharManagementStage(outBoundCh)
-	sourceStage := character.NewSourceStage(charManagerStage.RegisterCh)
+	sourceStage := character.NewSourceStage(charManagerStage.GetRegisterCh())
 
 	go sourceStage.Start()
 	go charManagerStage.Start()

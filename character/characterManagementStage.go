@@ -24,23 +24,27 @@ func (c *CharManagementStage) Register(char Character) {
 	c.registerCh <- char
 }
 
+func (c *CharManagementStage) GetRegisterCh() chan Character {
+	return c.registerCh
+}
+
 func (stage *CharManagementStage) Start() {
 	for {
 		select {
-		case char := <-stage.RegisterCh:
+		case char := <-stage.registerCh:
 			_, ok := stage.charMap[char.ID]
 			if !ok {
 				stage.charMap[char.ID] = char
-				stage.OutboundCh <- char
+				stage.outboundCh <- char
 			}
-		case char := <-stage.DeleteCh:
+		case char := <-stage.deleteCh:
 			delete(stage.charMap, char.ID)
-		case char := <-stage.UpdateCh:
+		case char := <-stage.updateCh:
 			stage.charMap[char.ID] = char
-		case char := <-stage.QueryCh:
+		case char := <-stage.queryCh:
 			charVal, ok := stage.charMap[char.ID]
 			if ok {
-				stage.OutboundCh <- charVal
+				stage.outboundCh <- charVal
 			}
 		}
 	}
