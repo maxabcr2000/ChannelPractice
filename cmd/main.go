@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/maxabcr2000/ChannelPractice/character"
@@ -53,12 +52,29 @@ func register(w http.ResponseWriter, req *http.Request) {
 
 	var char *character.Character
 	err = json.Unmarshal(body, &char)
-	if err != nil || char.ID == 0 || char.Name == "" {
+	if err != nil || char.ID <= 0 || char.Name == "" {
 		http.Error(w, fmt.Sprintf("Bad Request: %s", string(body)), http.StatusBadRequest)
 		return
 	}
 
-	pipeline.Register(*char)
+	action := character.NewAction("Register new character", *char)
+	isTimeout := pipeline.Register(action)
+
+	if isTimeout {
+		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+		return
+	}
+
+	if pipeline.ErrorStage.CheckFailedAction(action.ID) {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Println("main.register(): action.ID=", action.ID)
+
+	actionDesc := pipeline.SinkStage.CheckCompletedAction(action.ID)
+	fmt.Println("main.register(): actionDesc=", actionDesc)
+	fmt.Fprint(w, actionDesc)
 }
 
 func delete(w http.ResponseWriter, req *http.Request) {
@@ -81,7 +97,10 @@ func delete(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	pipeline.Delete(id)
+	action := character.NewAction("Delete character", id)
+	pipeline.Delete(action)
+
+	//#Todo: Waiting for sinkStage , errorStage or timeout after 5 secs
 }
 
 func read(w http.ResponseWriter, req *http.Request) {
@@ -104,15 +123,19 @@ func read(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	char := pipeline.Read(id)
-	b, err := json.Marshal(char)
-	if err != nil {
-		log.Println("Serialize Error")
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
+	action := character.NewAction("Query character", id)
+	pipeline.Read(action)
 
-	fmt.Fprint(w, string(b))
+	//#Todo: Waiting for sinkStage , errorStage or timeout after 5 secs
+
+	// b, err := json.Marshal(char)
+	// if err != nil {
+	// 	log.Println("Serialize Error")
+	// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// fmt.Fprint(w, string(b))
 }
 
 func update(w http.ResponseWriter, req *http.Request) {
@@ -145,5 +168,7 @@ func update(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	pipeline.Update(*char)
+	action := character.NewAction("Update character", *char)
+	pipeline.Update(action)
+	//#Todo: Waiting for sinkStage , errorStage or timeout after 5 secs
 }
