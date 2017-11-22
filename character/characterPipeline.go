@@ -16,6 +16,7 @@ type Action struct {
 	ID          int
 	Description string
 	data        interface{}
+	returnCh    chan Action
 }
 
 func NewAction(desc string, data interface{}) Action {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/maxabcr2000/ChannelPractice/character"
 )
@@ -65,17 +66,22 @@ func register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
-	if ok {
-		http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
-		return
-	}
+	for {
+		actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+		if ok {
+			http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
+			return
+		}
 
-	fmt.Println("main.register(): action.ID=", action.ID)
+		fmt.Println("main.register(): action.ID=", action.ID)
 
-	actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
-	if ok {
-		fmt.Fprint(w, actionResult.Description)
+		actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+		if ok {
+			fmt.Fprint(w, actionResult.Description)
+			return
+		}
+
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -106,17 +112,21 @@ func delete(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
-	if ok {
-		http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
-		return
-	}
+	for {
+		actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+		if ok {
+			http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
+			return
+		}
 
-	fmt.Println("main.delete(): action.ID=", action.ID)
+		fmt.Println("main.delete(): action.ID=", action.ID)
 
-	actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
-	if ok {
-		fmt.Fprint(w, actionResult.Description)
+		actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+		if ok {
+			fmt.Fprint(w, actionResult.Description)
+			return
+		}
+		time.Sleep(time.Millisecond)
 	}
 }
 
@@ -147,27 +157,32 @@ func read(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
-	if ok {
-		http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
-		return
-	}
-
-	actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
-	if ok {
-		char, err := actionResult.GetDataAsCharacter()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+	for {
+		actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+		if ok {
+			http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
 			return
 		}
 
-		b, err := json.Marshal(char)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+		actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+		if ok {
+			char, err := actionResult.GetDataAsCharacter()
+			if err != nil {
+				http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+				return
+			}
+
+			b, err := json.Marshal(char)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+				return
+			}
+
+			fmt.Fprint(w, string(b))
 			return
 		}
 
-		fmt.Fprint(w, string(b))
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -208,14 +223,18 @@ func update(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
-	if ok {
-		http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
-		return
-	}
+	for {
+		actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+		if ok {
+			http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
+			return
+		}
 
-	actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
-	if ok {
-		fmt.Fprint(w, actionResult.Description)
+		actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+		if ok {
+			fmt.Fprint(w, actionResult.Description)
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }
