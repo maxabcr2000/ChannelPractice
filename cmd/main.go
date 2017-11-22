@@ -65,16 +65,18 @@ func register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if pipeline.ErrorStage.CheckFailedAction(action.ID) {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+	if ok {
+		http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
 		return
 	}
 
 	fmt.Println("main.register(): action.ID=", action.ID)
 
-	actionDesc := pipeline.SinkStage.CheckCompletedAction(action.ID)
-	fmt.Println("main.register(): actionDesc=", actionDesc)
-	fmt.Fprint(w, actionDesc)
+	actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+	if ok {
+		fmt.Fprint(w, actionResult.Description)
+	}
 }
 
 func delete(w http.ResponseWriter, req *http.Request) {
@@ -98,9 +100,24 @@ func delete(w http.ResponseWriter, req *http.Request) {
 	}
 
 	action := character.NewAction("Delete character", id)
-	pipeline.Delete(action)
+	isTimeout := pipeline.Delete(action)
+	if isTimeout {
+		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+		return
+	}
 
-	//#Todo: Waiting for sinkStage , errorStage or timeout after 5 secs
+	actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+	if ok {
+		http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Println("main.delete(): action.ID=", action.ID)
+
+	actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+	if ok {
+		fmt.Fprint(w, actionResult.Description)
+	}
 }
 
 func read(w http.ResponseWriter, req *http.Request) {
@@ -124,18 +141,34 @@ func read(w http.ResponseWriter, req *http.Request) {
 	}
 
 	action := character.NewAction("Query character", id)
-	pipeline.Read(action)
+	isTimeout := pipeline.Read(action)
+	if isTimeout {
+		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+		return
+	}
 
-	//#Todo: Waiting for sinkStage , errorStage or timeout after 5 secs
+	actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+	if ok {
+		http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
+		return
+	}
 
-	// b, err := json.Marshal(char)
-	// if err != nil {
-	// 	log.Println("Serialize Error")
-	// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	// 	return
-	// }
+	actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+	if ok {
+		char, err := actionResult.GetDataAsCharacter()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+			return
+		}
 
-	// fmt.Fprint(w, string(b))
+		b, err := json.Marshal(char)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprint(w, string(b))
+	}
 }
 
 func update(w http.ResponseWriter, req *http.Request) {
@@ -169,6 +202,20 @@ func update(w http.ResponseWriter, req *http.Request) {
 	}
 
 	action := character.NewAction("Update character", *char)
-	pipeline.Update(action)
-	//#Todo: Waiting for sinkStage , errorStage or timeout after 5 secs
+	isTimeout := pipeline.Update(action)
+	if isTimeout {
+		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+		return
+	}
+
+	actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+	if ok {
+		http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
+		return
+	}
+
+	actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+	if ok {
+		fmt.Fprint(w, actionResult.Description)
+	}
 }

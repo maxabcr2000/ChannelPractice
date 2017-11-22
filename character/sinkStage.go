@@ -24,12 +24,8 @@ func (stage *SinkStage) Start() {
 	}
 }
 
-func (stage *SinkStage) CheckCompletedAction(actionId int) string {
+func (stage *SinkStage) CheckCompletedAction(actionId int) (Action, bool) {
 	action, ok := stage.completeActions[actionId]
-	if !ok {
-		fmt.Println("CheckCompletedAction(): Not ok.")
-		return ""
-	}
-
-	return action.Description
+	fmt.Println("SinkStage.CheckCompletedAction():", ok)
+	return action, ok
 }

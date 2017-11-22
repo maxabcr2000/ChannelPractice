@@ -18,13 +18,14 @@ func (stage *ErrorStage) Start() {
 	for {
 		select {
 		case action := <-stage.inboundCh:
-			fmt.Println(action)
+			fmt.Printf("ErrorStage got action: %+v\n", action)
 			stage.failedActions[action.ID] = action
 		}
 	}
 }
 
-func (stage *ErrorStage) CheckFailedAction(actionId int) bool {
-	_, ok := stage.failedActions[actionId]
-	return ok
+func (stage *ErrorStage) CheckFailedAction(actionId int) (Action, bool) {
+	action, ok := stage.failedActions[actionId]
+	fmt.Println("ErrorStage.CheckFailedAction():", ok)
+	return action, ok
 }
