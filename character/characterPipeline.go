@@ -114,13 +114,21 @@ func (p *CharacterPipeline) register(action Action, timeout time.Duration) bool 
 	}
 }
 
-func (p *CharacterPipeline) Delete(action Action) {
+func (p *CharacterPipeline) DeleteWithTimeout(action Action, timeout time.Duration) bool {
+	return p.delete(action, timeout)
+}
+
+func (p *CharacterPipeline) Delete(action Action) bool {
+	return p.delete(action, DEFAULT_TIMEOUT)
+}
+
+func (p *CharacterPipeline) delete(action Action, timeout time.Duration) bool {
 	stringVal, err := action.GetDataAsString()
 	if err != nil {
 		action.Description = err.Error()
 		action.data = err
 		p.failCh <- action
-		return
+		return false
 	}
 
 	var intVal int
@@ -129,24 +137,56 @@ func (p *CharacterPipeline) Delete(action Action) {
 		action.Description = err.Error()
 		action.data = err
 		p.failCh <- action
-		return
+		return false
 	}
 
 	action.data = intVal
-	p.charManagerStage.GetDeleteCh() <- action
+
+	for {
+		select {
+		case p.charManagerStage.GetDeleteCh() <- action:
+			return false
+		case <-time.After(timeout):
+			return true
+		}
+	}
+
 }
 
-func (p *CharacterPipeline) Update(action Action) {
-	p.charManagerStage.GetUpdateCh() <- action
+func (p *CharacterPipeline) UpdateWithTimeout(action Action, timeout time.Duration) bool {
+	return p.update(action, timeout)
 }
 
-func (p *CharacterPipeline) Read(action Action) {
+func (p *CharacterPipeline) Update(action Action) bool {
+	return p.update(action, DEFAULT_TIMEOUT)
+}
+
+func (p *CharacterPipeline) update(action Action, timeout time.Duration) bool {
+	for {
+		select {
+		case p.charManagerStage.GetUpdateCh() <- action:
+			return false
+		case <-time.After(timeout):
+			return true
+		}
+	}
+}
+
+func (p *CharacterPipeline) ReadWithTimeout(action Action, timeout time.Duration) bool {
+	return p.read(action, timeout)
+}
+
+func (p *CharacterPipeline) Read(action Action) bool {
+	return p.read(action, DEFAULT_TIMEOUT)
+}
+
+func (p *CharacterPipeline) read(action Action, timeout time.Duration) bool {
 	stringVal, err := action.GetDataAsString()
 	if err != nil {
 		action.Description = err.Error()
 		action.data = err
 		p.failCh <- action
-		return
+		return false
 	}
 
 	var intVal int
@@ -155,11 +195,19 @@ func (p *CharacterPipeline) Read(action Action) {
 		action.Description = err.Error()
 		action.data = err
 		p.failCh <- action
-		return
+		return false
 	}
 
 	action.data = intVal
-	p.charManagerStage.GetQueryCh() <- action
+	for {
+		select {
+		case p.charManagerStage.GetQueryCh() <- action:
+			return false
+		case <-time.After(timeout):
+			return true
+		}
+	}
+
 }
 
 // func (p *CharacterPipeline) handleFailedAction(action Action, err error) {
