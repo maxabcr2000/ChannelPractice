@@ -173,49 +173,45 @@ func (p *CharacterPipeline) update(action Action, timeout time.Duration) bool {
 	}
 }
 
-func (p *CharacterPipeline) ReadWithTimeout(action Action, timeout time.Duration) bool {
-	return p.read(action, timeout)
+func (p *CharacterPipeline) ReadSync(charID int) (Character, bool) {
+	char, ok := p.charManagerStage.TryGetCharacter(charID)
+	return char, ok
 }
 
-func (p *CharacterPipeline) Read(action Action) bool {
-	return p.read(action, DEFAULT_TIMEOUT)
-}
+// func (p *CharacterPipeline) ReadWithTimeout(action Action, timeout time.Duration) bool {
+// 	return p.read(action, timeout)
+// }
 
-func (p *CharacterPipeline) read(action Action, timeout time.Duration) bool {
-	stringVal, err := action.GetDataAsString()
-	if err != nil {
-		action.Description = err.Error()
-		action.data = err
-		p.failCh <- action
-		return false
-	}
+// func (p *CharacterPipeline) Read(action Action) bool {
+// 	return p.read(action, DEFAULT_TIMEOUT)
+// }
 
-	var intVal int
-	intVal, err = strconv.Atoi(stringVal)
-	if err != nil {
-		action.Description = err.Error()
-		action.data = err
-		p.failCh <- action
-		return false
-	}
-
-	action.data = intVal
-	for {
-		select {
-		case p.charManagerStage.GetQueryCh() <- action:
-			return false
-		case <-time.After(timeout):
-			return true
-		}
-	}
-
-}
-
-// func (p *CharacterPipeline) handleFailedAction(action Action, err error) {
+// func (p *CharacterPipeline) read(action Action, timeout time.Duration) bool {
+// 	stringVal, err := action.GetDataAsString()
 // 	if err != nil {
 // 		action.Description = err.Error()
 // 		action.data = err
 // 		p.failCh <- action
-// 		return
+// 		return false
 // 	}
+
+// 	var intVal int
+// 	intVal, err = strconv.Atoi(stringVal)
+// 	if err != nil {
+// 		action.Description = err.Error()
+// 		action.data = err
+// 		p.failCh <- action
+// 		return false
+// 	}
+
+// 	action.data = intVal
+// 	for {
+// 		select {
+// 		case p.charManagerStage.GetQueryCh() <- action:
+// 			return false
+// 		case <-time.After(timeout):
+// 			return true
+// 		}
+// 	}
+
 // }

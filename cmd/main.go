@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/maxabcr2000/ChannelPractice/character"
@@ -143,48 +144,90 @@ func read(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id := req.FormValue("id")
+	charID := req.FormValue("id")
 
-	if id == "" {
+	if charID == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
-	action := character.NewAction("Query character", id)
-	isTimeout := pipeline.Read(action)
-	if isTimeout {
-		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+	intVal, err := strconv.Atoi(charID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("StatusBadRequest: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
-	for {
-		actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
-		if ok {
-			http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
-			return
-		}
+	char, ok := pipeline.ReadSync(intVal)
 
-		actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
-		if ok {
-			char, err := actionResult.GetDataAsCharacter()
-			if err != nil {
-				http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
-				return
-			}
-
-			b, err := json.Marshal(char)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
-				return
-			}
-
-			fmt.Fprint(w, string(b))
-			return
-		}
-
-		time.Sleep(50 * time.Millisecond)
+	if !ok {
+		http.Error(w, fmt.Sprintf("InternalServerError: Failed to query the requested character data."), http.StatusInternalServerError)
+		return
 	}
+
+	b, err := json.Marshal(char)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprint(w, string(b))
 }
+
+// func readAsync(w http.ResponseWriter, req *http.Request) {
+// 	fmt.Println("listJSON Endpoint: ", req.RemoteAddr)
+
+// 	if req.Method != "GET" {
+// 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+// 		return
+// 	}
+
+// 	if req.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+// 		http.Error(w, "We only support application/x-www-form-urlencoded format in GET.", http.StatusUnsupportedMediaType)
+// 		return
+// 	}
+
+// 	id := req.FormValue("id")
+
+// 	if id == "" {
+// 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	action := character.NewAction("Query character", id)
+// 	isTimeout := pipeline.Read(action)
+// 	if isTimeout {
+// 		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+// 		return
+// 	}
+
+// 	for {
+// 		actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
+// 		if ok {
+// 			http.Error(w, fmt.Sprintf("InternalServerError: %s", actionResult.Description), http.StatusInternalServerError)
+// 			return
+// 		}
+
+// 		actionResult, ok = pipeline.SinkStage.CheckCompletedAction(action.ID)
+// 		if ok {
+// 			char, err := actionResult.GetDataAsCharacter()
+// 			if err != nil {
+// 				http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+// 				return
+// 			}
+
+// 			b, err := json.Marshal(char)
+// 			if err != nil {
+// 				http.Error(w, fmt.Sprintf("InternalServerError: %s", err.Error()), http.StatusInternalServerError)
+// 				return
+// 			}
+
+// 			fmt.Fprint(w, string(b))
+// 			return
+// 		}
+
+// 		time.Sleep(50 * time.Millisecond)
+// 	}
+// }
 
 func update(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("listJSON Endpoint: ", req.RemoteAddr)

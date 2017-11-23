@@ -140,3 +140,8 @@ func (stage *CharManagementStage) Start() {
 		}
 	}
 }
+
+func (stage *CharManagementStage) TryGetCharacter(charID int) (Character, bool) {
+	char, ok := stage.charMap[charID]
+	return char, ok
+}
