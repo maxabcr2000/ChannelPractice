@@ -18,10 +18,13 @@ var (
 func main() {
 	pipeline.Start()
 
-	http.HandleFunc("/register", register)
-	http.HandleFunc("/delete", delete)
-	http.HandleFunc("/read", read)
-	http.HandleFunc("/update", update)
+	http.HandleFunc("/register", registerSync)
+	http.HandleFunc("/registerAsync", registerAsync)
+	http.HandleFunc("/delete", deleteSync)
+	http.HandleFunc("/deleteAsync", deleteAsync)
+	http.HandleFunc("/read", readSync)
+	http.HandleFunc("/update", updateSync)
+	http.HandleFunc("/updateAsync", updateAsync)
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -29,7 +32,15 @@ func main() {
 	}
 }
 
-func register(w http.ResponseWriter, req *http.Request) {
+func registerSync(w http.ResponseWriter, req *http.Request) {
+	register(w, req, true)
+}
+
+func registerAsync(w http.ResponseWriter, req *http.Request) {
+	register(w, req, false)
+}
+
+func register(w http.ResponseWriter, req *http.Request, sync bool) {
 	fmt.Println("listJSON Endpoint: ", req.RemoteAddr)
 
 	if req.Method != "POST" {
@@ -67,6 +78,11 @@ func register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if !sync {
+		fmt.Fprint(w, "Character registration has committed. Please check back later.")
+		return
+	}
+
 	for {
 		actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
 		if ok {
@@ -86,7 +102,15 @@ func register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func delete(w http.ResponseWriter, req *http.Request) {
+func deleteSync(w http.ResponseWriter, req *http.Request) {
+	delete(w, req, true)
+}
+
+func deleteAsync(w http.ResponseWriter, req *http.Request) {
+	delete(w, req, false)
+}
+
+func delete(w http.ResponseWriter, req *http.Request, sync bool) {
 	fmt.Println("listJSON Endpoint: ", req.RemoteAddr)
 
 	if req.Method != "DELETE" {
@@ -113,6 +137,11 @@ func delete(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if !sync {
+		fmt.Fprint(w, "Character delete has committed. Please check back later.")
+		return
+	}
+
 	for {
 		actionResult, ok := pipeline.ErrorStage.CheckFailedAction(action.ID)
 		if ok {
@@ -131,7 +160,7 @@ func delete(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func read(w http.ResponseWriter, req *http.Request) {
+func readSync(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("listJSON Endpoint: ", req.RemoteAddr)
 
 	if req.Method != "GET" {
@@ -229,7 +258,15 @@ func read(w http.ResponseWriter, req *http.Request) {
 // 	}
 // }
 
-func update(w http.ResponseWriter, req *http.Request) {
+func updateSync(w http.ResponseWriter, req *http.Request) {
+	update(w, req, true)
+}
+
+func updateAsync(w http.ResponseWriter, req *http.Request) {
+	update(w, req, false)
+}
+
+func update(w http.ResponseWriter, req *http.Request, sync bool) {
 	fmt.Println("listJSON Endpoint: ", req.RemoteAddr)
 
 	if req.Method != "PUT" {
@@ -263,6 +300,11 @@ func update(w http.ResponseWriter, req *http.Request) {
 	isTimeout := pipeline.Update(action)
 	if isTimeout {
 		http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+		return
+	}
+
+	if !sync {
+		fmt.Fprint(w, "Character update has committed. Please check back later.")
 		return
 	}
 
