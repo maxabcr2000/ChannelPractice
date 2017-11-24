@@ -35,18 +35,18 @@ func NewCharacter(id int, name string) Character {
 	return c
 }
 
-func (c *Character) Move() {
-	c.PosX += 10
-	c.PosY += 10
-}
+// func (c *Character) Move() {
+// 	c.PosX += 10
+// 	c.PosY += 10
+// }
 
-func (c *Character) TryCollide(target *Character) bool {
-	if c.PosX == target.PosX && c.PosY == target.PosY {
-		return true
-	}
-	return false
-}
+// func (c *Character) TryCollide(target *Character) bool {
+// 	if c.PosX == target.PosX && c.PosY == target.PosY {
+// 		return true
+// 	}
+// 	return false
+// }
 
-func (c *Character) Battle() {
-	c.Hp -= 10
-}
+// func (c *Character) Battle() {
+// 	c.Hp -= 10
+// }
